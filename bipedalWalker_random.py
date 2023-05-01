@@ -1,5 +1,4 @@
 import gym
-
 env = gym.make('BipedalWalker-v3')
 env.reset()
 
@@ -10,5 +9,4 @@ for _ in range(10000):
     
     if done:
         env.reset()
-
 env.close()
