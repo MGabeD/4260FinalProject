@@ -1,4 +1,5 @@
-import tensorflow.keras
+import tensorflow as tf
+from tensorflow import keras
 from keras.models import Sequential
 from keras.layers import Dense
 import numpy as np
@@ -8,7 +9,14 @@ import random
 from deap import base, creator, tools, algorithms
 import pickle
 
-
+award=0
+env = gym.make('BipedalWalker-v3')
+env = env.env
+env.reset()
+# measurements of the env (total) - number of input dimensions
+in_dim = env.observation_space.shape[0]
+# possible actions - number of output dimensions
+out_dim = env.action_space[0]  
 
 def model_build(in_dim=in_dim, out_dim=out_dim):
     # Defining the model with keras
@@ -58,18 +66,11 @@ def model_weights_as_matrix(model, weights_vector):
 
     return weights_matrix
 
-award=0
-env = gym.make('BipedalWalker-v3')
-env = env.env
-env.reset()
-# measurements of the env (total) - number of input dimensions
-in_dim = env.observation_space.shape[0]
-# possible actions - number of output dimensions
-out_dim = env.action_space.n   
+
+
 obs1 = env.reset()
 model = model_build(in_dim,out_dim)
 ind_size = model.count_params()
-
 
 creator.create("Max", base.Fitness, weights=(1.0,))
 creator.create("Indiv", list, fitness=creator.Max)

@@ -18,7 +18,7 @@ env.reset()
 # measurements of the env (total) - number of input dimensions
 in_dim = env.observation_space.shape[0]
 # possible actions - number of output dimensions
-out_dim = env.action_space.n   
+out_dim = env.action_space.shape[0]
 
 # model_weights_as_vector and model_weights_as_matrix are directly taken from 
 # tutorial for another model (cartpole)
