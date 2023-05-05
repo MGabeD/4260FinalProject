@@ -16,7 +16,7 @@ env.reset()
 # measurements of the env (total) - number of input dimensions
 in_dim = env.observation_space.shape[0]
 # possible actions - number of output dimensions
-out_dim = env.action_space[0]  
+out_dim = env.action_space.shape[0]
 
 def model_build(in_dim=in_dim, out_dim=out_dim):
     # Defining the model with keras
@@ -75,7 +75,9 @@ ind_size = model.count_params()
 creator.create("Max", base.Fitness, weights=(1.0,))
 creator.create("Indiv", list, fitness=creator.Max)
 
-with open("bipedalWalker.pkl", 'rb') as file:  
+
+# NOTE CHANGE THIS LINE
+with open("bipedalWalker6.pkl", 'rb') as file:  
     best = pickle.load(file)
     
 

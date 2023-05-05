@@ -7,6 +7,7 @@ import gym
 import Box2D
 import random
 from deap import base, creator, tools, algorithms
+from deap.tools import History
 import pickle
 import os
 
@@ -72,7 +73,7 @@ def model_build(in_dim=in_dim, out_dim=out_dim):
     
     return model
 
-def evaluate(individual,award=0):
+def evaluate(individual, forward_reward=0.0, velocity_scale=1.0):
     env.reset()
     obs1 = env.reset()
     model = model_build()
@@ -88,10 +89,13 @@ def evaluate(individual,award=0):
         obs = np.expand_dims(obs4, axis=0)
         selected_move1 = model.predict(obs)
         obs2, reward, done, info = env.step(selected_move1[0])
-        award += reward
+        velocity_reward = (obs2[0] - obs1[0]) * velocity_scale
+        reward += velocity_reward
+        forward_reward += velocity_reward
+        reward += forward_reward
         step = step+1
         obs1 = obs2
-    return (award,)
+    return (reward,)
 
 model = model_build()
 ind_size = model.count_params()
@@ -100,10 +104,12 @@ print(model.summary())
 
 creator.create("Max", base.Fitness, weights=(1.0,))
 creator.create("Indiv", list, fitness=creator.Max)
+# creator.create("Lineage", list)
 toolbox = base.Toolbox()
 toolbox.register("weight_bin", np.random.uniform,-1,1)
 toolbox.register("indiv", tools.initRepeat, creator.Indiv, toolbox.weight_bin, n=ind_size)
 toolbox.register("population", tools.initRepeat, list, toolbox.indiv)
+# toolbox.register("lineage", tools.initRepeat, creator.Lineage)
 
 toolbox.register("mate", tools.cxTwoPoint)
 toolbox.register("mutate", tools.mutFlipBit, indpb=0.01)
@@ -115,11 +121,12 @@ stats.register("Mean", np.mean)
 stats.register("Max", np.max)
 stats.register("Min", np.min)
 
-
-
 pop = toolbox.population(n=populationControl)
 hof = tools.HallOfFame(1)
+history = History()
 
+toolbox.decorate("mate", history.decorator)
+toolbox.decorate("mutate", history.decorator)
 
 pop, log = algorithms.eaSimple(pop, toolbox, cxpb=0.8, mutpb=0.2, ngen=generations, halloffame=hof, stats=stats, verbose=True)
 print(log)
@@ -141,4 +148,6 @@ with open(f"{filename}.pkl", "wb") as cp_file:
 with open(f"{filename}_logbook.pkl", "wb") as logbook_file:
     pickle.dump(log, logbook_file)
 
-
+# Save the lineage with the same filename as the .pkl but _lineage is appended
+with open(f"{filename}_lineage.pkl", "wb") as lineage_file:
+    pickle.dump(history, lineage_file)

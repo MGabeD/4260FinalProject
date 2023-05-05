@@ -9,6 +9,7 @@ import random
 from deap import base, creator, tools, algorithms
 import pickle
 import os
+import math
 
 env = gym.make('BipedalWalker-v3')
 
@@ -21,8 +22,11 @@ in_dim = env.observation_space.shape[0]
 # possible actions - number of output dimensions
 out_dim = env.action_space.shape[0]
 
-populationControl = 100
+populationControl = 16
 generations = 5
+mutationRate = 0.01
+genSurvival = math.ceil(populationControl*.25)
+prunerate = .5
 
 # model_weights_as_vector and model_weights_as_matrix are directly taken from 
 # tutorial for another model (cartpole)
@@ -69,7 +73,8 @@ def model_build(in_dim=in_dim, out_dim=out_dim):
 
     # Compile the model with mean squared error loss and Adam optimizer
     model.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
-    
+    # optimizer = Adam(learning_rate=0.001)
+    # model.compile(loss="mse", optimizer=optimizer, metrics=["accuracy"])
     return model
 
 def evaluate(individual,award=0):
@@ -93,6 +98,13 @@ def evaluate(individual,award=0):
         obs1 = obs2
     return (award,)
 
+def select_best(individuals, tournsize = 3):
+    n = len(individuals)
+    top_idx = math.ceil(n * prunerate)
+    print(str(n) + " individuals, want to choose " + str(top_idx))
+    top = tools.selBest(individuals, top_idx, fit_attr='fitness')
+    return tools.selTournament(top, genSurvival, tournsize, fit_attr='fitness')
+
 model = model_build()
 ind_size = model.count_params()
 print(ind_size)
@@ -105,10 +117,15 @@ toolbox.register("weight_bin", np.random.uniform,-1,1)
 toolbox.register("indiv", tools.initRepeat, creator.Indiv, toolbox.weight_bin, n=ind_size)
 toolbox.register("population", tools.initRepeat, list, toolbox.indiv)
 
+
+
 toolbox.register("mate", tools.cxTwoPoint)
-toolbox.register("mutate", tools.mutFlipBit, indpb=0.01)
-toolbox.register("select", tools.selTournament, tournsize=3)
+toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=0.1, indpb=mutationRate)
+# toolbox.register("select", tools.selTournament, tournsize=3)
+toolbox.register("select", select_best)
 toolbox.register("evaluate", evaluate)
+
+
 
 stats = tools.Statistics(lambda ind: ind.fitness.values)
 stats.register("Mean", np.mean)
@@ -119,7 +136,6 @@ stats.register("Min", np.min)
 
 pop = toolbox.population(n=populationControl)
 hof = tools.HallOfFame(1)
-
 
 pop, log = algorithms.eaSimple(pop, toolbox, cxpb=0.8, mutpb=0.2, ngen=generations, halloffame=hof, stats=stats, verbose=True)
 print(log)
